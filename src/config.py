@@ -15,6 +15,7 @@ class Settings:
     url: str
     username: str
     password: str
+    totp_secret: str
     customer_id: str
     download_dir: Path
     processed_dir: Path
@@ -33,6 +34,7 @@ class Settings:
             url=os.getenv("INDIAPOST_URL", "https://app.indiapost.gov.in/misreports/crm-last-event"),
             username=os.getenv("INDIAPOST_USERNAME", ""),
             password=os.getenv("INDIAPOST_PASSWORD", ""),
+            totp_secret=os.getenv("INDIAPOST_TOTP_SECRET", ""),
             customer_id=os.getenv("INDIAPOST_CUSTOMER_ID", ""),
             download_dir=_path("DOWNLOAD_DIR", "./data/raw"),
             processed_dir=_path("PROCESSED_DIR", "./data/processed"),

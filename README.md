@@ -61,11 +61,13 @@ selectors are filled in) to see the real column headers, then edit
 ## 4. Run it
 
 ```bash
-python -m src.pipeline --from-date 01/08/2026 --to-date 23/08/2026
+python -m src.pipeline --from-date 2026-08-01 --to-date 2026-08-23 --customer-id 2000014074
 ```
 
-Defaults to yesterday→today if dates are omitted. Customer ID comes from
-`INDIAPOST_CUSTOMER_ID` in `.env`, or pass `--customer-id`.
+Dates are `YYYY-MM-DD` (matches the portal's native date picker). Defaults
+to yesterday→today if dates are omitted. There's no fixed default customer
+ID — pass `--customer-id` each run, or set `INDIAPOST_CUSTOMER_ID` in `.env`
+if you usually query the same one.
 
 Output lands in `data/processed/`.
 
@@ -92,15 +94,15 @@ with "Start in" set to the project directory. The default date range
 
 Set `HEADLESS=true` in `.env` for scheduled/unattended runs.
 
-## CAPTCHA caveat
+## Login: TOTP two-factor
 
-If the India Post login page shows a CAPTCHA, **fully unattended scheduled
-runs will not be able to get past it** — no bypass is built here, since
-defeating a site's anti-automation challenge isn't something this project
-does. If that's the case, options are: check whether the portal offers a
-"remember this browser" / longer-lived session cookie you can reuse, or run
-the pipeline as a semi-attended task where you solve the CAPTCHA once when
-prompted.
+The portal uses Keycloak login with TOTP (authenticator-app) 2FA, not a
+CAPTCHA — no manual step is needed for scheduled runs. Set
+`INDIAPOST_TOTP_SECRET` in `.env` to the **Base32 setup secret** (the string
+behind the QR code you scanned when first setting up the authenticator app —
+looks like `JBSWY3DPEHPK3PXP`), and the pipeline generates the current
+6-digit code itself at login time. Treat this secret like a password —
+never commit the real `.env`.
 
 ## Project layout
 

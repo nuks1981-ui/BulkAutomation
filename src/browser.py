@@ -14,12 +14,13 @@ import logging
 from pathlib import Path
 from typing import Any
 
+import pyotp
 import yaml
 from playwright.sync_api import Page, sync_playwright
 
 logger = logging.getLogger(__name__)
 
-RUNTIME_VALUE_KEYS = ("username", "password", "from_date", "to_date", "customer_id")
+RUNTIME_VALUE_KEYS = ("username", "password", "totp_secret", "from_date", "to_date", "customer_id")
 
 
 class SelectorNotConfiguredError(RuntimeError):
@@ -69,6 +70,11 @@ def _run_step(page: Page, step: dict[str, Any], runtime_values: dict[str, str], 
             page.select_option(selector, value=value)
     elif action == "click":
         page.click(selector)
+    elif action == "fill_totp":
+        # Generate the 6-digit code at the moment we fill it (codes rotate
+        # every 30s) rather than earlier in the run.
+        code = pyotp.TOTP(value).now()
+        page.fill(selector, code)
     elif action == "click_and_download":
         with page.expect_download() as download_info:
             page.click(selector)
@@ -94,6 +100,7 @@ def run_pipeline_steps(
     headless: bool,
     username: str,
     password: str,
+    totp_secret: str,
     from_date: str,
     to_date: str,
     customer_id: str,
@@ -103,6 +110,7 @@ def run_pipeline_steps(
     runtime_values = {
         "username": username,
         "password": password,
+        "totp_secret": totp_secret,
         "from_date": from_date,
         "to_date": to_date,
         "customer_id": customer_id,

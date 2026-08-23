@@ -1,65 +1,97 @@
-# Copy this to config/selectors.yaml and fill in the real selectors.
-#
-# The exact IDs/names on app.indiapost.gov.in are NOT known yet — this sandbox
-# cannot reach that site to inspect it. Run `python scripts/discover_form.py`
-# on a machine that CAN reach the portal, log in manually, walk through to the
-# report filter screen, and it will dump every input/select/button on each
-# page (id, name, label text, options) into data/discovery/*.json. Use those
-# dumps to fill in the "selector" value for each step below.
+# Copy this to config/selectors.yaml. Selectors below marked "TODO" are the
+# only ones still unknown — everything else was captured from a real run of
+# scripts/discover_form.py against app.indiapost.gov.in and confirmed working
+# against the actual DOM (Keycloak login + TOTP 2FA + CRM last-event report).
 #
 # Each step is executed in order by src/browser.py. Supported actions:
 #   fill               - type text into an input
+#   fill_totp          - generate the current 6-digit TOTP code from the
+#                        totp_secret and type it into the input
 #   select             - choose an option from a <select> (by visible label,
 #                        falls back to value if no label match)
 #   click              - click an element
 #   click_and_download - click and wait for a file download to start
 #   wait_for_load      - wait for the page to finish navigating/loading
-#   wait_for_selector  - wait until the given selector appears (useful after
-#                        a login redirect, or after a customer-id dropdown
-#                        finishes populating)
+#   wait_for_selector  - wait until the given selector appears
 #
-# "value_from" pulls the value from the runtime context (username, password,
-# from_date, to_date, customer_id). Steps without value_from (click, waits)
-# ignore it. Dates are passed through in the format given on the CLI
-# (--from-date / --to-date); adjust the format there once you know what the
-# portal's date picker expects (commonly DD/MM/YYYY for Indian gov portals).
+# Dates (from_date/to_date) must be in YYYY-MM-DD format — the portal's
+# StartDate/EndDate fields are native HTML date inputs.
 
 steps:
+  # --- Login (Keycloak) ------------------------------------------------------
   - name: username
-    selector: "TODO"          # e.g. "#txtUserName" or "input[name='username']"
+    selector: "#username"
     action: fill
     value_from: username
 
   - name: password
-    selector: "TODO"
+    selector: "#password"
     action: fill
     value_from: password
 
   - name: login_button
-    selector: "TODO"
+    selector: "#kc-login"
     action: click
 
   - name: wait_after_login
     action: wait_for_load
 
-  # If the portal shows a CAPTCHA on login, unattended scheduled runs will
-  # not be able to get past it automatically. See README "CAPTCHA" section.
+  # --- 2FA: choose "Authenticator App (TOTP)" and continue --------------------
+  - name: select_totp_method
+    selector: "#totp"
+    action: click
 
+  - name: continue_after_method
+    selector: "#kc-continue"
+    action: click
+
+  - name: wait_after_method
+    action: wait_for_load
+
+  # --- 2FA: enter the 6-digit code --------------------------------------------
+  # TODO: not yet captured. Run scripts/discover_form.py again, this time:
+  # log in, on the "Authenticator App (TOTP)" screen click Continue, and
+  # BEFORE typing a code, switch back to the terminal and dump that screen.
+  # Fill in the real input selector and the submit button below.
+  - name: otp_code
+    selector: "TODO"          # e.g. "#otp" — the 6-digit code input
+    action: fill_totp
+    value_from: totp_secret
+
+  - name: submit_otp
+    selector: "TODO"          # the button that submits the OTP form
+    action: click
+
+  - name: wait_after_otp
+    action: wait_for_load
+
+  # --- Report filter screen ---------------------------------------------------
   - name: from_date
-    selector: "TODO"
+    selector: "#StartDate"
     action: fill
     value_from: from_date
 
   - name: to_date
-    selector: "TODO"
+    selector: "#EndDate"
     action: fill
     value_from: to_date
 
   - name: customer_id
-    selector: "TODO"
-    action: select             # switch to "fill" if it's a free-text/autocomplete field
+    selector: "#CustomerID"
+    action: fill
     value_from: customer_id
 
   - name: submit
-    selector: "TODO"
+    selector: "text=Submit >> nth=0"
+    action: click
+
+  - name: wait_for_results
+    action: wait_for_selector
+    selector: "text=Download CSV"
+
+  # There are two "Download CSV" buttons on this page (one submit + one
+  # duplicate/toggle) — target the first explicitly to avoid Playwright's
+  # strict-mode "multiple elements match" error.
+  - name: download
+    selector: "text=Download CSV >> nth=0"
     action: click_and_download

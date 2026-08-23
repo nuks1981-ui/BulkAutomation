@@ -4,11 +4,11 @@ last-event report for a date range/customer, and process it into the
 customized output formats defined in config/pipeline.yaml.
 
 Examples:
-    # Download + process
-    python -m src.pipeline --from-date 01/08/2026 --to-date 23/08/2026
+    # Download + process (dates in YYYY-MM-DD, matching the portal's date picker)
+    python -m src.pipeline --from-date 2026-08-01 --to-date 2026-08-23
 
-    # Use a specific customer ID (overrides .env default)
-    python -m src.pipeline --from-date 01/08/2026 --to-date 23/08/2026 --customer-id 12345
+    # Use a specific customer ID (there is no fixed default; pass it each run)
+    python -m src.pipeline --from-date 2026-08-01 --to-date 2026-08-23 --customer-id 2000014074
 
     # Skip the download step and just re-process an already-downloaded file
     python -m src.pipeline --skip-download --raw-file data/raw/some_export.csv
@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    yesterday = (date.today() - timedelta(days=1)).strftime("%d/%m/%Y")
-    today = date.today().strftime("%d/%m/%Y")
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    today = date.today().isoformat()
 
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--from-date", default=yesterday, help=f"Report start date (default: yesterday, {yesterday})")
@@ -76,6 +76,7 @@ def main(argv: list[str] | None = None) -> int:
             headless=settings.headless,
             username=settings.username,
             password=settings.password,
+            totp_secret=settings.totp_secret,
             from_date=args.from_date,
             to_date=args.to_date,
             customer_id=customer_id,
