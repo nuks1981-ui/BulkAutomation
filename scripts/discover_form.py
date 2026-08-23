@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -63,12 +64,30 @@ def slugify(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:60] or "page"
 
 
+def safe_evaluate(page, script: str, retries: int = 5, delay_seconds: float = 1.5):
+    """Retries page.evaluate() to ride out redirects/reloads that destroy the
+    JS execution context mid-call (common right after login or navigation)."""
+    last_error: Exception | None = None
+    for attempt in range(1, retries + 1):
+        try:
+            page.wait_for_load_state("load", timeout=10_000)
+        except Exception:
+            pass  # page may already be settled; evaluate() below is the real check
+        try:
+            return page.evaluate(script)
+        except Exception as e:
+            last_error = e
+            print(f"  (page still settling, retry {attempt}/{retries}...)")
+            time.sleep(delay_seconds)
+    raise RuntimeError(f"Page never settled after {retries} retries") from last_error
+
+
 def dump_page(page, label: str) -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d-%H%M%S")
     slug = f"{ts}_{slugify(label)}"
 
-    elements = page.evaluate(DUMP_JS)
+    elements = safe_evaluate(page, DUMP_JS)
     json_path = OUT_DIR / f"{slug}.json"
     json_path.write_text(json.dumps({"url": page.url, "title": page.title(), "elements": elements}, indent=2))
 
