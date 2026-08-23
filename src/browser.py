@@ -11,6 +11,7 @@ config/selectors.yaml does.
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -110,6 +111,34 @@ def _run_step(page: Page, step: dict[str, Any], runtime_values: dict[str, str], 
     return None
 
 
+def _dump_failure_state(page: Page, step: dict[str, Any]) -> None:
+    """Saves a screenshot + the current URL/title when a step fails, so a
+    failure can be diagnosed without needing to watch a headed run live."""
+    debug_dir = Path("data") / "discovery"
+    debug_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+    name = step.get("name", "step")
+    screenshot_path = debug_dir / f"FAILURE_{ts}_{name}.png"
+    try:
+        page.screenshot(path=str(screenshot_path), full_page=True)
+    except Exception:
+        screenshot_path = None
+    logger.error(
+        "Step '%s' failed. Current URL: %s | Title: %s | Screenshot: %s",
+        name,
+        page.url,
+        _safe_title(page),
+        screenshot_path,
+    )
+
+
+def _safe_title(page: Page) -> str:
+    try:
+        return page.title()
+    except Exception:
+        return "<unavailable>"
+
+
 def run_pipeline_steps(
     url: str,
     selectors_path: Path,
@@ -145,7 +174,11 @@ def run_pipeline_steps(
             page.set_default_timeout(60_000)
             page.goto(url, wait_until="domcontentloaded", timeout=60_000)
             for step in steps:
-                result = _run_step(page, step, runtime_values, download_dir)
+                try:
+                    result = _run_step(page, step, runtime_values, download_dir)
+                except Exception:
+                    _dump_failure_state(page, step)
+                    raise
                 if result is not None:
                     downloaded_path = result
         finally:
