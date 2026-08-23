@@ -138,6 +138,11 @@ def run_pipeline_steps(
         browser = p.chromium.launch(headless=headless)
         try:
             page = browser.new_page(accept_downloads=True)
+            # This portal's SPA can take a while to render after the OAuth
+            # login redirect (background network-speed checks, heavy menu
+            # system) — the default 30s auto-wait on fill/click is too
+            # tight for that step.
+            page.set_default_timeout(60_000)
             page.goto(url, wait_until="domcontentloaded", timeout=60_000)
             for step in steps:
                 result = _run_step(page, step, runtime_values, download_dir)

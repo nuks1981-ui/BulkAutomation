@@ -68,6 +68,13 @@ steps:
   - name: wait_after_otp
     action: wait_for_load
 
+  # The SPA takes a while to render the report form after the OAuth
+  # redirect back from Keycloak — wait for the actual field rather than
+  # assuming "load" means the form is ready.
+  - name: wait_for_report_form
+    action: wait_for_selector
+    selector: "#StartDate"
+
   # --- Report filter screen ---------------------------------------------------
   - name: from_date
     selector: "#StartDate"
