@@ -1,12 +1,17 @@
-# Copy this to config/selectors.yaml. Selectors below marked "TODO" are the
-# only ones still unknown — everything else was captured from a real run of
-# scripts/discover_form.py against app.indiapost.gov.in and confirmed working
-# against the actual DOM (Keycloak login + TOTP 2FA + CRM last-event report).
+# Copy this to config/selectors.yaml. Every selector below was captured from
+# a real run of scripts/discover_form.py against app.indiapost.gov.in
+# (Keycloak login + segmented TOTP 2FA + CRM last-event report). Re-run that
+# script and update this file if the portal's UI changes.
 #
 # Each step is executed in order by src/browser.py. Supported actions:
 #   fill               - type text into an input
-#   fill_totp          - generate the current 6-digit TOTP code from the
-#                        totp_secret and type it into the input
+#   fill_totp          - generate the current 6-digit TOTP code and type it
+#                        into a single input (unused here, kept for other
+#                        sites with a one-box OTP field)
+#   fill_totp_digits   - generate the current 6-digit TOTP code and type one
+#                        digit into each element matched by selector, in
+#                        order (used here — this portal has 6 separate
+#                        single-digit boxes)
 #   select             - choose an option from a <select> (by visible label,
 #                        falls back to value if no label match)
 #   click              - click an element
@@ -49,17 +54,15 @@ steps:
     action: wait_for_load
 
   # --- 2FA: enter the 6-digit code --------------------------------------------
-  # TODO: not yet captured. Run scripts/discover_form.py again, this time:
-  # log in, on the "Authenticator App (TOTP)" screen click Continue, and
-  # BEFORE typing a code, switch back to the terminal and dump that screen.
-  # Fill in the real input selector and the submit button below.
+  # This screen uses 6 separate single-digit text boxes (no id/name on them)
+  # with a hidden #totp field the site's own JS keeps in sync as you type.
   - name: otp_code
-    selector: "TODO"          # e.g. "#otp" — the 6-digit code input
-    action: fill_totp
+    selector: "input[type='text']"
+    action: fill_totp_digits
     value_from: totp_secret
 
   - name: submit_otp
-    selector: "TODO"          # the button that submits the OTP form
+    selector: "#kc-submit"
     action: click
 
   - name: wait_after_otp

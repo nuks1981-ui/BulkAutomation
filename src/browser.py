@@ -71,10 +71,24 @@ def _run_step(page: Page, step: dict[str, Any], runtime_values: dict[str, str], 
     elif action == "click":
         page.click(selector)
     elif action == "fill_totp":
-        # Generate the 6-digit code at the moment we fill it (codes rotate
-        # every 30s) rather than earlier in the run.
+        # Single-input TOTP form: generate the 6-digit code at the moment we
+        # fill it (codes rotate every 30s) rather than earlier in the run.
         code = pyotp.TOTP(value).now()
         page.fill(selector, code)
+    elif action == "fill_totp_digits":
+        # Segmented TOTP form: one text box per digit, no id/name on the
+        # boxes, with a hidden field mirroring the combined value via the
+        # boxes' own input-event JS. Typing into each box (rather than
+        # setting the hidden field directly) keeps that sync logic intact.
+        code = pyotp.TOTP(value).now()
+        boxes = page.query_selector_all(selector)
+        if len(boxes) != len(code):
+            raise RuntimeError(
+                f"Step '{name}': expected {len(code)} OTP digit boxes but found "
+                f"{len(boxes)} matching selector '{selector}'"
+            )
+        for box, digit in zip(boxes, code):
+            box.fill(digit)
     elif action == "click_and_download":
         with page.expect_download() as download_info:
             page.click(selector)
