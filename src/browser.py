@@ -85,7 +85,10 @@ def _run_step(page: Page, step: dict[str, Any], runtime_values: dict[str, str], 
         logger.info("Downloaded report to %s", dest)
         return dest
     elif action == "wait_for_load":
-        page.wait_for_load_state("networkidle")
+        # Not "networkidle": this portal polls continuously in the
+        # background (e.g. a "Check Network Speed" widget) and would never
+        # be considered idle, so wait_for_load would hang/timeout forever.
+        page.wait_for_load_state("load")
     elif action == "wait_for_selector":
         page.wait_for_selector(selector)
     else:
@@ -121,7 +124,7 @@ def run_pipeline_steps(
         browser = p.chromium.launch(headless=headless)
         try:
             page = browser.new_page(accept_downloads=True)
-            page.goto(url, wait_until="networkidle")
+            page.goto(url, wait_until="domcontentloaded", timeout=60_000)
             for step in steps:
                 result = _run_step(page, step, runtime_values, download_dir)
                 if result is not None:

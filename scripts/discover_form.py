@@ -107,7 +107,11 @@ def main() -> None:
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         page = browser.new_page(accept_downloads=True)
-        page.goto(url, wait_until="networkidle")
+        # This portal polls continuously in the background (e.g. a "Check
+        # Network Speed" widget), so it never reaches Playwright's
+        # "networkidle" state — wait for the DOM instead and let the Enter
+        # key / safe_evaluate retries handle any remaining settling.
+        page.goto(url, wait_until="domcontentloaded", timeout=60_000)
 
         input("Page loaded. Press Enter here to dump the LOGIN page's form fields...")
         dump_page(page, "login")
