@@ -1,0 +1,54 @@
+# Copy this to config/pipeline.yaml and adjust once you know the real
+# column names in the downloaded CRM last-event CSV (run the pipeline once
+# with --skip-processing-config-check, or just open the raw CSV, to see them).
+
+# --- 1. Column selection / reshape -----------------------------------------
+# Keep only these columns, and rename them (source_name: new_name). Omit
+# "columns" entirely to keep every column as-is.
+columns:
+  # Example — adjust to the real header names from the downloaded CSV:
+  # "Article ID": article_id
+  # "Booking Date": booking_date
+  # "Event": event
+  # "Event Date": event_date
+  # "Origin": origin
+  # "Destination": destination
+  # "Customer ID": customer_id
+
+# --- 2. Filters --------------------------------------------------------------
+# Rows must satisfy ALL of these to be kept. op is one of:
+# eq, ne, gt, gte, lt, lte, in, contains, not_null
+filters: []
+# Example:
+# - column: event
+#   op: eq
+#   value: "Delivered"
+
+# --- 3. Summary / aggregation ------------------------------------------------
+# Produces an extra "Summary" sheet. Leave group_by empty to skip.
+aggregate:
+  group_by: []
+  # Example:
+  # group_by: [event]
+  metrics: {}
+  # Example: {article_id: count}
+
+# --- 4. Split into multiple files --------------------------------------------
+# If set, one output workbook is produced per distinct value of this column
+# (e.g. split by destination or event). Leave null for a single output file.
+split_by: null
+
+# --- 5. Merge with another data source ---------------------------------------
+# Optional: left-join the downloaded report against another file you maintain
+# (e.g. a customer master list) to enrich it with extra columns.
+merge:
+  enabled: false
+  path: "./data/reference/customer_master.xlsx"
+  left_on: customer_id
+  right_on: customer_id
+  how: left
+
+# --- 6. Output ----------------------------------------------------------------
+output:
+  format: xlsx          # xlsx or csv
+  filename_prefix: crm_last_event

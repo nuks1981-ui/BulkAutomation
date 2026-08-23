@@ -1,0 +1,65 @@
+# Copy this to config/selectors.yaml and fill in the real selectors.
+#
+# The exact IDs/names on app.indiapost.gov.in are NOT known yet — this sandbox
+# cannot reach that site to inspect it. Run `python scripts/discover_form.py`
+# on a machine that CAN reach the portal, log in manually, walk through to the
+# report filter screen, and it will dump every input/select/button on each
+# page (id, name, label text, options) into data/discovery/*.json. Use those
+# dumps to fill in the "selector" value for each step below.
+#
+# Each step is executed in order by src/browser.py. Supported actions:
+#   fill               - type text into an input
+#   select             - choose an option from a <select> (by visible label,
+#                        falls back to value if no label match)
+#   click              - click an element
+#   click_and_download - click and wait for a file download to start
+#   wait_for_load      - wait for the page to finish navigating/loading
+#   wait_for_selector  - wait until the given selector appears (useful after
+#                        a login redirect, or after a customer-id dropdown
+#                        finishes populating)
+#
+# "value_from" pulls the value from the runtime context (username, password,
+# from_date, to_date, customer_id). Steps without value_from (click, waits)
+# ignore it. Dates are passed through in the format given on the CLI
+# (--from-date / --to-date); adjust the format there once you know what the
+# portal's date picker expects (commonly DD/MM/YYYY for Indian gov portals).
+
+steps:
+  - name: username
+    selector: "TODO"          # e.g. "#txtUserName" or "input[name='username']"
+    action: fill
+    value_from: username
+
+  - name: password
+    selector: "TODO"
+    action: fill
+    value_from: password
+
+  - name: login_button
+    selector: "TODO"
+    action: click
+
+  - name: wait_after_login
+    action: wait_for_load
+
+  # If the portal shows a CAPTCHA on login, unattended scheduled runs will
+  # not be able to get past it automatically. See README "CAPTCHA" section.
+
+  - name: from_date
+    selector: "TODO"
+    action: fill
+    value_from: from_date
+
+  - name: to_date
+    selector: "TODO"
+    action: fill
+    value_from: to_date
+
+  - name: customer_id
+    selector: "TODO"
+    action: select             # switch to "fill" if it's a free-text/autocomplete field
+    value_from: customer_id
+
+  - name: submit
+    selector: "TODO"
+    action: click_and_download

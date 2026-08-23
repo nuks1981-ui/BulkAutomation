@@ -1,0 +1,25 @@
+# Secrets
+.env
+*.env
+config/selectors.yaml
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Playwright
+.playwright-cache/
+
+# Data (never commit downloaded reports or discovery dumps — may contain customer data)
+data/raw/*
+data/processed/*
+data/discovery/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/discovery/.gitkeep
+
+# OS
+.DS_Store
